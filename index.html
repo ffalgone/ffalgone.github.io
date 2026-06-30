@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Каталог фотографий</title>
+<style>
+  :root {
+    --bg: #0f0f10;
+    --card-bg: #1a1a1c;
+    --accent: #2aabee; /* telegram blue */
+    --text: #f2f2f2;
+    --text-dim: #9a9a9a;
+    --border: #2a2a2c;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    padding: 24px 16px 60px;
+  }
+  header {
+    max-width: 1100px;
+    margin: 0 auto 28px;
+    text-align: center;
+  }
+  header h1 {
+    font-size: 28px;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+  }
+  header p {
+    color: var(--text-dim);
+    margin-top: 6px;
+    font-size: 14px;
+  }
+  .grid {
+    max-width: 1100px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 14px;
+  }
+  .card {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    cursor: pointer;
+    transition: transform 0.15s ease, border-color 0.15s ease;
+  }
+  .card:hover {
+    transform: translateY(-3px);
+    border-color: #3a3a3d;
+  }
+  .card img {
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    object-fit: cover;
+    display: block;
+  }
+  .card-info {
+    padding: 10px 12px;
+  }
+  .card-info .title {
+    font-size: 14px;
+    font-weight: 600;
+  }
+  .card-info .price {
+    font-size: 13px;
+    color: var(--accent);
+    margin-top: 2px;
+  }
+
+  /* Modal */
+  .overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.7);
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    z-index: 100;
+  }
+  .overlay.open { display: flex; }
+  .modal {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    max-width: 420px;
+    width: 100%;
+    max-height: 90vh;
+    overflow-y: auto;
+    position: relative;
+  }
+  .modal img {
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    object-fit: cover;
+    display: block;
+    border-radius: 16px 16px 0 0;
+  }
+  .modal-body {
+    padding: 18px 20px 22px;
+  }
+  .modal-body .title {
+    font-size: 19px;
+    font-weight: 700;
+    margin-bottom: 6px;
+  }
+  .modal-body .desc {
+    font-size: 14px;
+    color: var(--text-dim);
+    line-height: 1.5;
+    margin-bottom: 14px;
+  }
+  .modal-body .price {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--accent);
+    margin-bottom: 18px;
+  }
+  .btn-tg {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    background: var(--accent);
+    color: #fff;
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 15px;
+    padding: 13px;
+    border-radius: 10px;
+    transition: opacity 0.15s ease;
+  }
+  .btn-tg:hover { opacity: 0.88; }
+  .close-btn {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: rgba(0,0,0,0.55);
+    color: #fff;
+    border: none;
+    font-size: 18px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Каталог фотографий</h1>
+  <p>Нажмите на фото, чтобы посмотреть детали и связаться</p>
+</header>
+
+<div class="grid" id="grid"></div>
+
+<div class="overlay" id="overlay">
+  <div class="modal">
+    <button class="close-btn" id="closeBtn">✕</button>
+    <img id="modalImg" src="" alt="">
+    <div class="modal-body">
+      <div class="title" id="modalTitle"></div>
+      <div class="desc" id="modalDesc"></div>
+      <div class="price" id="modalPrice"></div>
+      <a class="btn-tg" id="modalLink" href="#" target="_blank" rel="noopener">
+        Написать в Telegram
+      </a>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ====== НАСТРОЙКИ ======
+  // Общая ссылка на Telegram (замените на свою)
+  const TELEGRAM_LINK = "https://t.me/your_username";
+
+  // Список фотографий — замените placeholder-ссылки и текст на свои
+  const photos = [
+    {
+      img: "https://picsum.photos/seed/photo1/600/450",
+      title: "Закат на побережье",
+      desc: "Авторская фотография, печать на холсте, размер 50x70 см.",
+      price: "120 €"
+    },
+    {
+      img: "https://picsum.photos/seed/photo2/600/450",
+      title: "Горный пейзаж",
+      desc: "Лимитированная серия, 1 из 20 экземпляров.",
+      price: "150 €"
+    },
+    {
+      img: "https://picsum.photos/seed/photo3/600/450",
+      title: "Городские огни",
+      desc: "Ночная съёмка, рамка в комплекте.",
+      price: "95 €"
+    },
+    {
+      img: "https://picsum.photos/seed/photo4/600/450",
+      title: "Лесная тропа",
+      desc: "Печать на матовой бумаге, размер A2.",
+      price: "80 €"
+    },
+    {
+      img: "https://picsum.photos/seed/photo5/600/450",
+      title: "Морской прибой",
+      desc: "Чёрно-белая версия доступна по запросу.",
+      price: "110 €"
+    },
+    {
+      img: "https://picsum.photos/seed/photo6/600/450",
+      title: "Осенний парк",
+      desc: "Оригинал, единственный экземпляр.",
+      price: "200 €"
+    }
+  ];
+  // ====== КОНЕЦ НАСТРОЕК ======
+
+  const grid = document.getElementById("grid");
+  const overlay = document.getElementById("overlay");
+  const modalImg = document.getElementById("modalImg");
+  const modalTitle = document.getElementById("modalTitle");
+  const modalDesc = document.getElementById("modalDesc");
+  const modalPrice = document.getElementById("modalPrice");
+  const modalLink = document.getElementById("modalLink");
+  const closeBtn = document.getElementById("closeBtn");
+
+  photos.forEach((p) => {
+    const card = document.createElement("div");
+    card.className = "card";
+    card.innerHTML = `
+      <img src="${p.img}" alt="${p.title}">
+      <div class="card-info">
+        <div class="title">${p.title}</div>
+        <div class="price">${p.price}</div>
+      </div>
+    `;
+    card.addEventListener("click", () => openModal(p));
+    grid.appendChild(card);
+  });
+
+  function openModal(p) {
+    modalImg.src = p.img;
+    modalImg.alt = p.title;
+    modalTitle.textContent = p.title;
+    modalDesc.textContent = p.desc;
+    modalPrice.textContent = p.price;
+    modalLink.href = TELEGRAM_LINK;
+    overlay.classList.add("open");
+  }
+
+  function closeModal() {
+    overlay.classList.remove("open");
+  }
+
+  closeBtn.addEventListener("click", closeModal);
+  overlay.addEventListener("click", (e) => {
+    if (e.target === overlay) closeModal();
+  });
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") closeModal();
+  });
+</script>
+
+</body>
+</html>
